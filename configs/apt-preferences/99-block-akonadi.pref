@@ -1,0 +1,6 @@
+# /etc/apt/preferences.d/99-block-akonadi.pref
+# Prevent APT from reinstalling Akonadi and KDE PIM as recommended dependencies
+
+Package: akonadi-server akonadi-backend-sqlite akonadi-backend-mysql akonadi-backend-postgresql kdepim-runtime kmail korganizer kaddressbook kalendarac akregator
+Pin: release *
+Pin-Priority: -1
