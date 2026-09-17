@@ -1,33 +1,30 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Script: 01-preflight-check.sh
-# Description: Inspects Debian KDE Plasma environment before debloating
-# ==============================================================================
+# 01-preflight-check.sh: Inspects system state, installed PIM packages, and Plasma protection.
 
 set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
+BOLD='\033[1m'
 NC='\033[0m'
 
-echo -e "${BLUE}==> [1/4] Checking Distribution & Desktop Environment...${NC}"
+echo "==> [1/4] Checking Distribution and Desktop Environment"
 if [ -f /etc/os-release ]; then
     . /etc/os-release
-    echo "    OS Detected: ${PRETTY_NAME:-Linux}"
+    echo "    OS: ${PRETTY_NAME:-Linux}"
 else
-    echo -e "${RED}❌ Unable to identify distribution (/etc/os-release missing).${NC}"
+    echo -e "    ${RED}[FAIL] Cannot identify distribution (/etc/os-release missing).${NC}"
     exit 1
 fi
 
 CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-unknown}"
-echo "    Desktop Environment: ${CURRENT_DESKTOP}"
+echo "    Desktop: ${CURRENT_DESKTOP}"
 if [[ "${CURRENT_DESKTOP}" != *"KDE"* ]]; then
-    echo -e "${YELLOW}⚠️  Warning: Active desktop does not appear to be KDE Plasma.${NC}"
+    echo -e "    ${YELLOW}[WARN] Active desktop session is not KDE Plasma.${NC}"
 fi
 
-echo -e "\n${BLUE}==> [2/4] Inspecting Akonadi & KDE PIM Packages...${NC}"
+echo -e "\n==> [2/4] Inspecting Akonadi and KDE PIM Packages"
 PIM_PKGS=(
     "akonadi-server"
     "kdepim-runtime"
@@ -44,47 +41,45 @@ PIM_PKGS=(
 FOUND_PIM=0
 for pkg in "${PIM_PKGS[@]}"; do
     if dpkg -l "${pkg}" 2>/dev/null | grep -q "^ii"; then
-        echo -e "    ${YELLOW}• ${pkg} is installed${NC}"
+        echo -e "    ${YELLOW}[INSTALLED] ${pkg}${NC}"
         FOUND_PIM=$((FOUND_PIM + 1))
     fi
 done
 
 if [ "${FOUND_PIM}" -eq 0 ]; then
-    echo -e "    ${GREEN}✔️  No primary Akonadi/PIM packages installed.${NC}"
+    echo -e "    ${GREEN}[OK] No primary Akonadi or PIM packages found.${NC}"
 else
-    echo -e "    ${YELLOW}⚠️  Found ${FOUND_PIM} target packages installed.${NC}"
+    echo -e "    ${YELLOW}[INFO] Found ${FOUND_PIM} target packages installed.${NC}"
 fi
 
-echo -e "\n${BLUE}==> [3/4] Inspecting Active Daemons & Memory Footprint...${NC}"
+echo -e "\n==> [3/4] Inspecting Running Daemons"
 AKONADI_PIDS=$(pgrep -i akonadi || true)
 if [ -n "${AKONADI_PIDS}" ]; then
     AKONADI_RAM=$(ps -o rss= -p ${AKONADI_PIDS} 2>/dev/null | awk '{sum+=$1} END {printf "%.1f MB", sum/1024}')
-    echo -e "    ${YELLOW}⚠️  Akonadi processes running. Consuming: ${AKONADI_RAM}${NC}"
+    echo -e "    ${YELLOW}[RUNNING] Akonadi processes active (${AKONADI_RAM} RSS).${NC}"
 else
-    echo -e "    ${GREEN}✔️  Akonadi daemons: inactive (0 MB used).${NC}"
+    echo -e "    ${GREEN}[OK] Akonadi daemons inactive.${NC}"
 fi
 
 BALOO_PIDS=$(pgrep -i baloo_file || true)
 if [ -n "${BALOO_PIDS}" ]; then
     BALOO_RAM=$(ps -o rss= -p ${BALOO_PIDS} 2>/dev/null | awk '{sum+=$1} END {printf "%.1f MB", sum/1024}')
-    echo -e "    ${YELLOW}⚠️  Baloo file indexer running. Consuming: ${BALOO_RAM}${NC}"
+    echo -e "    ${YELLOW}[RUNNING] Baloo file indexer active (${BALOO_RAM} RSS).${NC}"
 else
-    echo -e "    ${GREEN}✔️  Baloo indexer: inactive.${NC}"
+    echo -e "    ${GREEN}[OK] Baloo indexer inactive.${NC}"
 fi
 
-echo -e "\n${BLUE}==> [4/4] Verifying Core KDE Plasma Desktop Protection...${NC}"
+echo -e "\n==> [4/4] Verifying Core KDE Plasma Desktop Protection"
 CORE_PKGS=("plasma-desktop" "plasma-workspace")
-PROTECTED=true
 for core in "${CORE_PKGS[@]}"; do
     if dpkg -l "${core}" 2>/dev/null | grep -q "^ii"; then
         MARK_STATUS=$(apt-mark showmanual "${core}" 2>/dev/null || true)
         if [ -n "${MARK_STATUS}" ]; then
-            echo -e "    ${GREEN}✔️  ${core} is marked manual (protected from autoremove).${NC}"
+            echo -e "    ${GREEN}[OK] ${core} is marked manual (protected from autoremove).${NC}"
         else
-            echo -e "    ${YELLOW}⚠️  ${core} is marked auto! Will be marked manual before debloating.${NC}"
-            PROTECTED=false
+            echo -e "    ${YELLOW}[WARN] ${core} is marked auto. Will be set to manual during cleanup.${NC}"
         fi
     fi
 done
 
-echo -e "\n${GREEN}✔️  Preflight inspection complete.${NC}"
+echo -e "\n${GREEN}[OK] Preflight inspection complete.${NC}"

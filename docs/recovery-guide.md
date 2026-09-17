@@ -1,67 +1,66 @@
-# Restoration & Rollback Guide
+# Rollback and Recovery Guide
 
-If you ever need to restore Akonadi, KMail, KOrganizer, or the KDE PIM suite in the future, follow these simple steps to revert changes cleanly.
+Procedures to restore Akonadi, KDE PIM applications, and Baloo file indexing.
 
 ---
 
-## 1. Remove the APT Pinning Restriction
+## 1. Remove APT Pinning
 
-To allow APT to install Akonadi packages again:
+Remove the preference file that restricts package installation:
 
 ```bash
 sudo rm -f /etc/apt/preferences.d/99-block-akonadi.pref
-```
-
-Update package lists to refresh policies:
-```bash
 sudo apt-get update
 ```
 
-Verify that the pin is cleared:
+Confirm that the pin is removed:
 ```bash
 apt-cache policy akonadi-server
-# The Pin-Priority should no longer show -1
 ```
+The output should no longer report `Pin-Priority: -1`.
 
 ---
 
-## 2. Reinstall KDE PIM Applications
+## 2. Reinstall Packages
 
-You can reinstall only the specific applications you need, or the full suite:
+### Single Applications
+To reinstall specific applications without the entire PIM suite:
 
-### Option A: Install Specific Apps Only (Recommended)
-If you only need KMail:
 ```bash
+# KMail
 sudo apt-get install -y kmail akonadi-backend-sqlite
-```
 
-If you only need KOrganizer:
-```bash
+# KOrganizer
 sudo apt-get install -y korganizer akonadi-backend-sqlite
 ```
 
-### Option B: Reinstall Complete KDE PIM Suite
+### Complete PIM Suite
+To reinstall all standard KDE PIM applications:
+
 ```bash
 sudo apt-get install -y kdepim kmail korganizer kaddressbook akonadi-server
 ```
 
 ---
 
-## 3. Re-enable Baloo File Indexer (Optional)
+## 3. Re-enable Baloo File Indexing (Optional)
 
-If you wish to turn desktop file indexing back on:
+If desktop search indexing is required:
 
 ```bash
-# Using balooctl (Plasma 5) or balooctl6 (Plasma 6)
-balooctl6 enable
-balooctl6 check
+# Enable indexer
+if command -v balooctl6 >/dev/null; then
+    balooctl6 enable
+elif command -v balooctl >/dev/null; then
+    balooctl enable
+fi
 
-# Unmask the systemd user service
+# Unmask and start systemd user unit
 systemctl --user unmask kde-baloo.service
 systemctl --user start kde-baloo.service
 ```
 
-Update `~/.config/baloofilerc` to re-enable indexing:
+Set `Indexing-Enabled=true` in `~/.config/baloofilerc`:
 ```ini
 [Basic Settings]
 Indexing-Enabled=true
@@ -69,12 +68,11 @@ Indexing-Enabled=true
 
 ---
 
-## 4. Verify Functionality
+## 4. Verification
 
-Start the Akonadi server manually or open KMail:
+Start the Akonadi service and verify agent status:
+
 ```bash
 akonadictl start
 akonadictl status
 ```
-
-You should see all agents registered and active.

@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Script: 04-purge-bloat-apps.sh
-# Description: Removes auxiliary bloat applications commonly pre-installed with KDE
-# ==============================================================================
+# 04-purge-bloat-apps.sh: Removes auxiliary media and utility packages commonly bundled with KDE.
 
 set -euo pipefail
 
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 NC='\033[0m'
 
 DRY_RUN=false
@@ -25,15 +20,14 @@ else
     SUDO=""
 fi
 
-echo -e "${BLUE}==> [1/2] Identifying Auxiliary KDE Bloat Packages...${NC}"
+echo "==> [1/2] Checking Auxiliary Packages"
 AUX_BLOAT=(
-    "akregator"      # RSS reader (usually pulls kdepim libs)
-    "dragonplayer"   # Legacy media player
-    "sweeper"        # Redundant system cleaner
-    "kamera"         # Digital camera configure tool
-    "kaddressbook"   # Redundant contacts app
-    "knotes"         # Legacy sticky notes (pulls Akonadi)
-    "kmines"         # Games (if installed)
+    "akregator"
+    "dragonplayer"
+    "sweeper"
+    "kamera"
+    "knotes"
+    "kmines"
     "kpat"
     "kmahjongg"
     "ksudoku"
@@ -47,18 +41,18 @@ for app in "${AUX_BLOAT[@]}"; do
 done
 
 if [ ${#FOUND_APPS[@]} -gt 0 ]; then
-    echo "    Detected bloat packages: ${FOUND_APPS[*]}"
-    echo -e "\n${BLUE}==> [2/2] Purging Packages...${NC}"
+    echo "    Detected: ${FOUND_APPS[*]}"
+    echo -e "\n==> [2/2] Purging Packages"
     if [ "${DRY_RUN}" = true ]; then
-        echo -e "${YELLOW}    [DRY-RUN] Would run: apt-get purge -y ${FOUND_APPS[*]}${NC}"
-        echo -e "${YELLOW}    [DRY-RUN] Would run: apt-get autoremove --purge -y${NC}"
+        echo -e "    ${YELLOW}[DRY-RUN] Would run: apt-get purge -y ${FOUND_APPS[*]}${NC}"
+        echo -e "    ${YELLOW}[DRY-RUN] Would run: apt-get autoremove --purge -y${NC}"
     else
         ${SUDO} apt-get purge -y "${FOUND_APPS[@]}"
         ${SUDO} apt-get autoremove --purge -y
-        echo -e "${GREEN}✔️  Auxiliary bloat packages successfully purged.${NC}"
+        echo -e "    ${GREEN}[OK] Packages purged.${NC}"
     fi
 else
-    echo -e "    ${GREEN}✔️  No auxiliary bloatware detected.${NC}"
+    echo -e "    ${GREEN}[OK] No auxiliary packages detected.${NC}"
 fi
 
-echo -e "\n${GREEN}✔️  Auxiliary cleanup complete!${NC}"
+echo -e "\n${GREEN}[OK] Auxiliary cleanup complete.${NC}"
