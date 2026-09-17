@@ -33,7 +33,7 @@ This toolkit provides standalone scripts and manual instructions to:
 Clone the repository and inspect the planned actions using dry-run mode:
 
 ```bash
-git clone https://github.com/your-username/debian-kde-debloat.git # or local path
+git clone https://github.com/1999AZZAR/debian-kde-debloat.git
 cd debian-kde-debloat
 chmod +x scripts/*.sh
 
